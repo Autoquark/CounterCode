@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "CounterCode": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "D:\\J\\FirebaseKey\\CounterCodeFirebaseKey.json"
+      }
+    }
+  }
+}
