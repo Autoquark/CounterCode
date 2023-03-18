@@ -9,7 +9,7 @@ namespace CounterCode.Models
 {
     // Represents a player in the context of a particular game; whenever a discord user joins a new game, a new GamePlayer is created for them
     [FirestoreData]
-    internal class GamePlayer
+    internal class GamePlayer : FirestoreDocument
     {
         [FirestoreProperty]
         public ulong DiscordUserId { get; set; }

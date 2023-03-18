@@ -43,7 +43,7 @@ namespace CounterCode.SlashCommands
             {
                 await context.EditResponseAsync(
                     new DiscordWebhookBuilder()
-                        .WithContent("You have already joined this game"));
+                        .WithContent("You have already joined that game"));
                 return;
             }
 

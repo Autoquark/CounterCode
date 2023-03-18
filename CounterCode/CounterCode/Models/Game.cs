@@ -10,7 +10,7 @@ namespace CounterCode.Models
 {
     // Represents a game of CounterCode
     [FirestoreData]
-    internal class Game
+    internal class Game : FirestoreDocument
     {
         [FirestoreProperty]
         public string Name { get; set; } = "Unknown";
@@ -28,6 +28,9 @@ namespace CounterCode.Models
         [FirestoreProperty]
         public List<GamePlayer> Players { get; set; } = new List<GamePlayer>();
 
+        [FirestoreProperty]
+        public List<Code> Codes { get; set; } = new List<Code>();
+
         // Number of Evil players in the game. When created this defaults to -1, meaning that a default proportion of players will be evil.
         // Once the game has started if the default proportion was used this value will be updated to reflect the actual number of evil players.
         [FirestoreProperty]
@@ -38,5 +41,8 @@ namespace CounterCode.Models
         // Infiltrators.
         [FirestoreProperty]
         public int NumInfiltrators { get; set; } = -1;
+
+        [FirestoreProperty]
+        public int CodesPerPlayer { get; set; } = 2;
     }
 }

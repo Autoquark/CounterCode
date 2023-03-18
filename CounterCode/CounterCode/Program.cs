@@ -20,7 +20,10 @@ class Program
 
     public static DiscordClient DiscordClient { get; set; }
 
-    public static ThreadLocal<Random> Random = new(() => new Random());
+    private static ThreadLocal<Random> _random = new(() => new Random());
+#pragma warning disable CS8603 // Possible null reference return.
+    public static Random Random => _random.Value;
+#pragma warning restore CS8603 // Possible null reference return.
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
     static async Task Main(string[] args)

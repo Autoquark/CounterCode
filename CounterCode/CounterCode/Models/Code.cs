@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 namespace CounterCode.Models
 {
     [FirestoreData]
-    internal class Code
+    internal class Code : FirestoreDocument
     {
         [FirestoreProperty]
         public string Text { get; set; } = "";
 
         [FirestoreProperty]
-        public Team Team { get; set; } = Team.Unknown;
+        public DocumentReference? OwningPlayer { get; set; }
 
         // GamePlayer who handed this code in
         [FirestoreProperty]

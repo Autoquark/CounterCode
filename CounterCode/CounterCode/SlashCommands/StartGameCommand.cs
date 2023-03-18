@@ -2,6 +2,7 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
+using Google.Apis.Util;
 using Google.Cloud.Firestore;
 using System;
 using System.Collections.Generic;
@@ -41,7 +42,8 @@ namespace CounterCode.SlashCommands
 
             // Start of game logic; assign teams etc.
 
-            Game game = MatchingGames[0].ConvertTo<Game>();
+            DocumentSnapshot GameDocument = MatchingGames[0];
+            Game game = GameDocument.ConvertTo<Game>();
 
             if(game.NumEvilPlayers < 0)
             {
@@ -58,22 +60,48 @@ namespace CounterCode.SlashCommands
                 game.NumInfiltrators = Math.Max(1, game.NumEvilPlayers / 3);
             }
 
-            game.Players.Shuffle();
-            for(int i = 0; i < game.Players.Count; i++)
+            // Generate codes
+            for (int i = 0; i < game.Players.Count; i++)
             {
-                game.Players[i].Team = i < game.NumEvilPlayers ? Team.Evil : Team.Good;
+                StringBuilder code = new StringBuilder();
+                for (int j = 0; j < 4; j++)
+                {
+                    code.Append((char)('A' + Program.Random.Next(0, 26)));
+                }
+
+                for (int j = 0; j < game.CodesPerPlayer; i++)
+                {
+                    game.Codes.Add(new Code
+                    {
+                        Text = code.ToString(),
+                        OwningPlayer = game.Players[i].DocumentId
+                    });
+                }
             }
-            game.Players[0].SpecialAbility = PlayerSpecialAbility.Infiltrator;
 
-            // Shuffle again so that the evil players aren't all at the start, as other commands may expose the ordering of the player list
-            game.Players.Shuffle();
+            // Shuffle the player indices, and make the first N of them evil
+            // We don't want to use the existing ordering of players because that's just the order they joined the game
+            // We don't want to shuffle the actual list because that would (I think) change the DocumentReference for all players
+            var ShuffledIndices = game.Players.Indices().Shuffled();
+            for (int i = 0; i < ShuffledIndices.Count; i++)
+            {
+                GamePlayer Player = game.Players[ShuffledIndices[i]];
+                Player.Team = i < game.NumEvilPlayers ? Team.Evil : Team.Good;
 
-            //await MatchingGames[0].Reference.UpdateAsync(nameof(Game.IsStarted), true);
+                if (i < game.NumInfiltrators)
+                {
+                    Player.SpecialAbility = PlayerSpecialAbility.Infiltrator;
+                }
+            }
+
             await MatchingGames[0].Reference.SetAsync(game);
 
             // Send start of game messages
 
-
+            foreach(var player in game.Players)
+            {
+                await SharedLogic.SendStartOfGameInfo(game, player);
+            }
 
             // Announce the start of the game
 
