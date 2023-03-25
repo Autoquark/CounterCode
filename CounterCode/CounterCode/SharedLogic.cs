@@ -24,7 +24,7 @@ namespace CounterCode
                 stringBuilder.AppendLine("You are an Infiltrator - if a Good player scans you, you will appear Good!");
             }
 
-            stringBuilder.AppendLine("Your secret codes are " + string.Join(", ", game.Codes.Where(x => x.OwningPlayer == gamePlayer.DocumentId).Select(x => x.Text)));
+            stringBuilder.AppendLine("Your secret codes are " + string.Join(", ", game.Codes.Where(x => x.OwningPlayer == gamePlayer.DocumentId).Select(x => x.String)));
 
             await Member.SendMessageAsync(stringBuilder.ToString());
         }

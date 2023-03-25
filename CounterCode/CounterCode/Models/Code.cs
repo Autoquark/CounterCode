@@ -11,7 +11,7 @@ namespace CounterCode.Models
     internal class Code : FirestoreDocument
     {
         [FirestoreProperty]
-        public string Text { get; set; } = "";
+        public string String { get; set; } = "";
 
         [FirestoreProperty]
         public DocumentReference? OwningPlayer { get; set; }

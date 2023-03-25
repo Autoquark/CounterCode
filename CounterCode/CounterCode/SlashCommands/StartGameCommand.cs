@@ -21,9 +21,9 @@ namespace CounterCode.SlashCommands
 
             // Find the game
 
-            QuerySnapshot MatchingGames = await Program.FirestoreDb.Collection("Games")
-                .WhereEqualTo(nameof(Game.Name), name)
-                .WhereEqualTo(nameof(Game.IsStarted), false)
+            QuerySnapshot MatchingGames = await Program.FirestoreDb.Games()
+                .WhereEqualTo(x => x.Name, name)
+                .WhereEqualTo(x => x.GameState, GameState.Setup)
                 .GetSnapshotAsync();
 
             if (MatchingGames.Count == 0)
@@ -45,9 +45,10 @@ namespace CounterCode.SlashCommands
             DocumentSnapshot GameDocument = MatchingGames[0];
             Game game = GameDocument.ConvertTo<Game>();
 
+            var players = (await game.GamePlayers!.GetSnapshotAsync()).Select(x => x.ConvertTo<GamePlayer>()).ToList();
             if(game.NumEvilPlayers < 0)
             {
-                game.NumEvilPlayers = game.Players.Count / 2;
+                game.NumEvilPlayers = players.Count / 2;
             }
             // I don't know why you would want to do this, maybe as a practical joke?
             else if(game.NumEvilPlayers == 0)
@@ -61,20 +62,20 @@ namespace CounterCode.SlashCommands
             }
 
             // Generate codes
-            for (int i = 0; i < game.Players.Count; i++)
+            for (int i = 0; i < players.Count; i++)
             {
-                StringBuilder code = new StringBuilder();
-                for (int j = 0; j < 4; j++)
+                for (int j = 0; j < game.CodesPerPlayer; j++)
                 {
-                    code.Append((char)('A' + Program.Random.Next(0, 26)));
-                }
+                    StringBuilder code = new StringBuilder();
+                    for (int k = 0; k < 4; k++)
+                    {
+                        code.Append((char)('A' + Program.Random.Next(0, 26)));
+                    }
 
-                for (int j = 0; j < game.CodesPerPlayer; i++)
-                {
                     game.Codes.Add(new Code
                     {
-                        Text = code.ToString(),
-                        OwningPlayer = game.Players[i].DocumentId
+                        String = code.ToString(),
+                        OwningPlayer = players[i].DocumentId
                     });
                 }
             }
@@ -82,31 +83,35 @@ namespace CounterCode.SlashCommands
             // Shuffle the player indices, and make the first N of them evil
             // We don't want to use the existing ordering of players because that's just the order they joined the game
             // We don't want to shuffle the actual list because that would (I think) change the DocumentReference for all players
-            var ShuffledIndices = game.Players.Indices().Shuffled();
+            var ShuffledIndices = players.Indices().Shuffled();
             for (int i = 0; i < ShuffledIndices.Count; i++)
             {
-                GamePlayer Player = game.Players[ShuffledIndices[i]];
-                Player.Team = i < game.NumEvilPlayers ? Team.Evil : Team.Good;
+                GamePlayer player = players[ShuffledIndices[i]];
+                player.Team = i < game.NumEvilPlayers ? Team.Evil : Team.Good;
 
                 if (i < game.NumInfiltrators)
                 {
-                    Player.SpecialAbility = PlayerSpecialAbility.Infiltrator;
+                    player.SpecialAbility = PlayerSpecialAbility.Infiltrator;
                 }
+
+                await player.DocumentId!.SetAsync(player);
             }
+
+            game.GameState = GameState.InProgress;
 
             await MatchingGames[0].Reference.SetAsync(game);
 
             // Send start of game messages
 
-            foreach(var player in game.Players)
+            foreach(var player in players)
             {
                 await SharedLogic.SendStartOfGameInfo(game, player);
             }
 
             // Announce the start of the game
 
-            List<string> MentionStrings = new List<string>(game.Players.Count);
-            foreach(var player in game.Players)
+            List<string> MentionStrings = new List<string>(players.Count);
+            foreach(var player in players)
             {
                 MentionStrings.Add((await Program.DiscordClient.GetUserAsync(player.DiscordUserId)).Mention);
             }

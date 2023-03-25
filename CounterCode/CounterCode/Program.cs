@@ -1,16 +1,9 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using CounterCode;
-using CounterCode.Models;
-using CounterCode.SlashCommands;
 using DSharpPlus;
-using DSharpPlus.EventArgs;
 using DSharpPlus.SlashCommands;
-using Firebase.Database;
 using Google.Cloud.Firestore;
-using Grpc.Net.Client.Balancer;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Configuration;
 using System.Reflection;
 
 class Program
@@ -28,6 +21,11 @@ class Program
 
     static async Task Main(string[] args)
     {
+        TaskScheduler.UnobservedTaskException += (sender, args) =>
+        {
+            Console.WriteLine(args);
+        };
+
         var secrets = JsonConvert.DeserializeObject<Secrets>(File.ReadAllText("Secrets.json"));
         if(secrets == null)
         {

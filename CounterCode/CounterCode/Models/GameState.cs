@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 
 namespace CounterCode.Models
 {
-    [FirestoreData]
-    internal class FirestoreDocument
+    [FirestoreData(ConverterType = typeof(FirestoreEnumNameConverter<GameState>))]
+    enum GameState
     {
-        [FirestoreDocumentId]
-        public DocumentReference? DocumentId { get; set; }
+        Setup,
+        InProgress,
+        Finished
     }
 }

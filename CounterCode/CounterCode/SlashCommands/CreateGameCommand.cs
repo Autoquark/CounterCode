@@ -26,9 +26,9 @@ namespace CounterCode.SlashCommands
                 return;
             }
 
-            if((await Program.FirestoreDb.Collection("Games")
-                .WhereEqualTo(nameof(Game.Name), name)
-                .WhereEqualTo(nameof(Game.IsEnded), false)
+            if((await Program.FirestoreDb.Games()
+                .WhereEqualTo(x => x.Name, name)
+                .WhereNotEqualTo(x => x.GameState, GameState.Finished)
                 .Count()
                 .GetSnapshotAsync()).Count > 0)
             {

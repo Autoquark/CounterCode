@@ -20,7 +20,7 @@ namespace CounterCode.SlashCommands
 
             QuerySnapshot MatchingGames = await Program.FirestoreDb.Collection("Games")
                 .WhereEqualTo(nameof(Game.Name), name)
-                .WhereEqualTo(nameof(Game.IsStarted), false)
+                .WhereEqualTo(nameof(Game.GameState), GameState.Setup)
                 .GetSnapshotAsync();
 
             if (MatchingGames.Count == 0)
@@ -39,11 +39,22 @@ namespace CounterCode.SlashCommands
 
             DocumentSnapshot GameDocument = MatchingGames[0];
             Game game = GameDocument.ConvertTo<Game>();
-            if(game.Players.Any(x => x.DiscordUserId == context.User.Id))
+            var players = (await game.GamePlayers!.GetSnapshotAsync()).Select(x => x.ConvertTo<GamePlayer>()).ToList();
+
+            if (players.Any(x => x.DiscordUserId == context.User.Id))
             {
                 await context.EditResponseAsync(
                     new DiscordWebhookBuilder()
                         .WithContent("You have already joined that game"));
+                return;
+            }
+
+            Game? existingGame = await Program.FirestoreDb.GetUserCurrentGame(context.User.Id);
+            if (existingGame != null)
+            {
+                await context.EditResponseAsync(
+                    new DiscordWebhookBuilder()
+                        .WithContent($"You are already in the game {existingGame.Name}"));
                 return;
             }
 
@@ -52,7 +63,10 @@ namespace CounterCode.SlashCommands
                 DiscordUserId = context.User.Id
             };
 
-            await GameDocument.Reference.UpdateAsync(nameof(Game.Players), FieldValue.ArrayUnion(NewPlayer));
+            game.PlayerDiscordIds.Add(NewPlayer.DiscordUserId);
+
+            await game.GamePlayers.AddAsync(NewPlayer);
+            await game.DocumentId!.SetAsync(game);
 
             await context.EditResponseAsync(new DiscordWebhookBuilder().WithContent($"Joined the game {game.Name}"));
         }
